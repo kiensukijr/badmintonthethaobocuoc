@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bảng đấu vòng tròn 6 đội</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 30px; }
+  h2 { text-align: center; }
+  input { margin: 5px; padding: 5px; }
+  table { border-collapse: collapse; margin-top: 20px; width: 100%; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  th { background-color: #f0f0f0; }
+  button { margin-top: 15px; padding: 10px 15px; cursor: pointer; }
+  .score-input { width: 60px; text-align: center; }
+  #predictionBox { margin-top: 20px; padding: 10px; background: #fafafa; border-radius: 8px; width: fit-content; }
+  #predictionResult { margin-top: 10px; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h2>Bảng đấu vòng tròn 6 đội</h2>
+
+<div id="inputTeams">
+  <p>Nhập tên 6 đội:</p>
+  <div id="teamInputs">
+    <input type="text" placeholder="Đội 1">
+    <input type="text" placeholder="Đội 2">
+    <input type="text" placeholder="Đội 3">
+    <input type="text" placeholder="Đội 4">
+    <input type="text" placeholder="Đội 5">
+    <input type="text" placeholder="Đội 6">
+  </div>
+
+  <div id="predictionBox">
+    <p><b>Dự đoán đội vô địch:</b></p>
+    <p id="predictionText">Chưa có dự đoán</p>
+  </div>
+
+  <button onclick="createMatches()">Tạo bảng đấu</button>
+</div>
+
+<div id="matches"></div>
+<div id="ranking"></div>
+<div id="predictionResult"></div>
+
+<script>
+function saveData(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+function loadData(key, defaultValue = null) {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : defaultValue;
+}
+
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
+}
+
+function createMatches() {
+  const inputs = document.querySelectorAll("#teamInputs input");
+  let teams = Array.from(inputs).map(i => i.value.trim()).filter(v => v);
+  
+  if (teams.length !== 6) {
+    alert("Vui lòng nhập đủ 6 đội!");
+    return;
+  }
+
+  // Lưu danh sách đội
+  saveData("teams", teams);
+
+  // Tự động chọn ngẫu nhiên đội dự đoán vô địch
+  const randomTeam = teams[Math.floor(Math.random() * teams.length)];
+  saveData("prediction", randomTeam);
+  document.getElementById("predictionText").innerHTML = `<b>${randomTeam}</b>`;
+
+  // Tạo bảng đấu vòng tròn
+  const matches = [];
+  for (let i = 0; i < teams.length; i++) {
+    for (let j = i + 1; j < teams.length; j++) {
+      matches.push([teams[i], teams[j]]);
+    }
+  }
+
+  saveData("matches", matches);
+  renderMatches(matches);
+}
+
+function renderMatches(matches) {
+  let html = "<h3>Danh sách trận đấu</h3><table><tr><th>Đội 1</th><th>Đội 2</th><th>Tỉ số (VD: 21-15)</th><th>Đội thắng</th></tr>";
+  const savedScores = loadData("scores", {});
+  const savedWinners = loadData("winners", {});
+  
+  matches.forEach((m, index) => {
+    const score = savedScores[index] || "";
+    const winner = savedWinners[index] || "";
+    html += `<tr>
+      <td>${m[0]}</td>
+      <td>${m[1]}</td>
+      <td><input type="text" id="score_${index}" class="score-input" placeholder="21-15" value="${score}"></td>
+      <td>
+        <select id="match_${index}">
+          <option value="">Chưa chọn</option>
+          <option value="${m[0]}" ${winner === m[0] ? "selected" : ""}>${m[0]}</option>
+          <option value="${m[1]}" ${winner === m[1] ? "selected" : ""}>${m[1]}</option>
+        </select>
+      </td>
+    </tr>`;
+  });
+  html += "</table><button onclick='calculateResults()'>Lưu và xếp hạng</button>";
+  document.getElementById("matches").innerHTML = html;
+  window.matchData = { matches, teams: matches.flat().filter((v,i,a)=>a.indexOf(v)===i) };
+
+  matches.forEach((_, index) => {
+    document.getElementById(`score_${index}`).addEventListener("input", saveScores);
+    document.getElementById(`match_${index}`).addEventListener("change", saveWinners);
+  });
+}
+
+function saveScores() {
+  const scores = {};
+  const inputs = document.querySelectorAll("[id^='score_']");
+  inputs.forEach(input => {
+    const idx = input.id.split("_")[1];
+    scores[idx] = input.value;
+  });
+  saveData("scores", scores);
+}
+
+function saveWinners() {
+  const winners = {};
+  const selects = document.querySelectorAll("[id^='match_']");
+  selects.forEach(sel => {
+    const idx = sel.id.split("_")[1];
+    winners[idx] = sel.value;
+  });
+  saveData("winners", winners);
+}
+
+function calculateResults() {
+  const { matches, teams } = window.matchData;
+  const stats = {};
+  teams.forEach(t => stats[t] = { points: 0, scored: 0, conceded: 0 });
+
+  const scores = loadData("scores", {});
+  const winners = loadData("winners", {});
+
+  matches.forEach((m, index) => {
+    const result = winners[index];
+    const scoreText = scores[index];
+    if (!scoreText) return;
+
+    const [s1, s2] = scoreText.split("-").map(Number);
+    if (isNaN(s1) || isNaN(s2)) return;
+
+    const team1 = m[0];
+    const team2 = m[1];
+
+    stats[team1].scored += s1;
+    stats[team1].conceded += s2;
+    stats[team2].scored += s2;
+    stats[team2].conceded += s1;
+
+    if (result === team1) stats[team1].points += 1;
+    else if (result === team2) stats[team2].points += 1;
+  });
+
+  const ranking = Object.entries(stats).sort((a,b) => {
+    const diffA = a[1].scored - a[1].conceded;
+    const diffB = b[1].scored - b[1].conceded;
+    if (b[1].points !== a[1].points) return b[1].points - a[1].points;
+    if (diffB !== diffA) return diffB - diffA;
+    return b[1].scored - a[1].scored;
+  });
+
+  let html = "<h3>Bảng xếp hạng</h3><table><tr><th>Vị trí</th><th>Đội</th><th>Điểm</th><th>Ghi được</th><th>Bị ghi</th><th>Hiệu số</th></tr>";
+  ranking.forEach(([team, stat], idx) => {
+    const diff = stat.scored - stat.conceded;
+    html += `<tr style="${idx===0?'background:#d1ffd1;font-weight:bold;':''}">
+      <td>${idx + 1}</td>
+      <td>${team}</td>
+      <td>${stat.points}</td>
+      <td>${stat.scored}</td>
+      <td>${stat.conceded}</td>
+      <td>${diff > 0 ? '+'+diff : diff}</td>
+    </tr>`;
+  });
+  html += "</table>";
+
+  document.getElementById("ranking").innerHTML = html;
+
+  // So sánh với dự đoán tự động
+  const predicted = loadData("prediction");
+  const champion = ranking[0][0];
+  if (predicted === champion) {
+    document.getElementById("predictionResult").innerHTML = `🎉 Hệ thống đã dự đoán đúng! Đội vô địch là <b>${champion}</b>.`;
+  } else {
+    document.getElementById("predictionResult").innerHTML = `🤔 Hệ thống dự đoán sai. Dự đoán là <b>${predicted}</b>, nhưng vô địch thật là <b>${champion}</b>.`;
+  }
+
+  saveData("ranking", ranking);
+}
+
+// Khi tải lại trang, khôi phục dữ liệu
+window.onload = function() {
+  const savedTeams = loadData("teams", []);
+  if (savedTeams.length) {
+    const inputs = document.querySelectorAll("#teamInputs input");
+    savedTeams.forEach((v, i) => inputs[i].value = v || "");
+  }
+
+  const savedPrediction = loadData("prediction");
+  if (savedPrediction) {
+    document.getElementById("predictionText").innerHTML = `<b>${savedPrediction}</b>`;
+  }
+
+  const savedMatches = loadData("matches");
+  if (savedMatches) renderMatches(savedMatches);
+
+  const savedRanking = loadData("ranking");
+  if (savedRanking) calculateResults();
+};
+</script>
+
+</body>
+</html>
