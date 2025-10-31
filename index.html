@@ -26,7 +26,7 @@
       height: 800px;
       background: url('logobadminton.jpg') no-repeat center center fixed;
       background-size: contain;
-      opacity: 0.2;
+      opacity: 0.1;
       /* 👈 mức độ mờ (0.05 → rất mờ, 0.2 → đậm hơn) */
       transform: translate(-50%, -50%);
       z-index: -1;
@@ -60,6 +60,24 @@
     th {
       background-color: #f0f0f0;
     }
+
+    /* Cố định độ rộng cho cột Đội thắng */
+td select[id^="match_"] {
+  width: 140px;       /* 👈 chỉnh độ rộng mong muốn (có thể thay 120–160px tùy giao diện) */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Đảm bảo các ô trong bảng có kích thước đều nhau */
+table td, table th {
+  text-align: center;
+  vertical-align: middle;
+  height: 40px;
+  white-space: nowrap;
+}
+
 
     button {
       margin-top: 15px;
