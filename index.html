@@ -5,7 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Giải Vô Địch Thể Thao Là Bỏ Cuộc</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 30px; }
+  body { 
+  font-family: Arial, sans-serif;
+  
+  font-family: Arial, sans-serif;
+  margin: 30px;
+  position: relative;
+  background-color: #ffffff;
+  overflow-x: hidden;
+  }
+
+  body::before {
+  content: "";
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 800px; /* 👈 kích thước logo */
+  height: 800px;
+  background: url('logobadminton.jpg') no-repeat center center fixed;
+  background-size: contain;
+  opacity: 0.2; /* 👈 mức độ mờ (0.05 → rất mờ, 0.2 → đậm hơn) */
+  transform: translate(-50%, -50%);
+  z-index: -1; /* đảm bảo nằm dưới toàn bộ nội dung */
+  pointer-events: none; /* không ảnh hưởng đến thao tác chuột */
+}
+
   h2 { text-align: center; }
   input { margin: 5px; padding: 5px; }
   table { border-collapse: collapse; margin-top: 20px; width: 100%; }
@@ -13,7 +37,7 @@
   th { background-color: #f0f0f0; }
   button { margin-top: 15px; padding: 10px 15px; cursor: pointer; }
   .score-input { width: 60px; text-align: center; }
-  #predictionBox { margin-top: 20px; padding: 10px; background: #fafafa; border-radius: 8px; width: fit-content; }
+  #predictionBox { margin-top: 20px; padding: 10px; background: #fafafa; border-radius: 8px; width: fit-content; border: #ff8787 solid 3px; }
   #predictionResult { margin-top: 10px; font-weight: bold; }
 </style>
 </head>
